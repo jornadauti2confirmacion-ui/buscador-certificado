@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscador de certificados</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 25px 15px;
+  color: #333;
+}
+.contenedor {
+  max-width: 520px;
+  margin: 35px auto;
+  background: white;
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: 0 3px 15px #0002;
+}
+h1 { text-align: center; color: #713f55; font-size: 25px; }
+p { text-align: center; line-height: 1.5; }
+input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 13px;
+  margin: 10px 0;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font-size: 16px;
+}
+button, .descargar {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #713f55;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+button:hover, .descargar:hover { background: #512b3d; }
+.resultado {
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 7px;
+}
+.resultado button { background: #777; }
+#verificacion { display: none; margin-top: 20px; }
+#mensaje { margin-top: 15px; font-weight: bold; text-align: center; }
+</style>
+</head>
+<body>
+<div class="contenedor">
+  <h1>Certificados</h1>
+  <p>III Jornada de Enfermería de Terapia Intensiva</p>
+  <p>Escribí tu nombre o apellido para buscar tu certificado.</p>
+
+  <input id="busqueda" type="text" placeholder="Nombre o apellido">
+  <button onclick="buscar()">BUSCAR</button>
+
+  <div id="resultados"></div>
+
+  <div id="verificacion">
+    <p>Participante seleccionado:</p>
+    <strong id="nombreElegido"></strong>
+    <input id="dni" type="text" inputmode="numeric" placeholder="Ingresá tu DNI">
+    <button onclick="verificar()">VERIFICAR DNI</button>
+  </div>
+
+  <div id="mensaje"></div>
+  <div id="descarga"></div>
+</div>
+
+<script>
+const participantes = `
+Gastòn Nùñez|29895873|https://drive.google.com/file/d/1O6TuEktXTzuLpDM3fYUQURhiienSQE83/view
+Mouls Nicolàs|37590447|https://drive.google.com/file/d/1pCLAQaG8G-V5jZK2x2YCjvMFrRuFYJHk/view
+Cura Flavia|34451005|https://drive.google.com/file/d/1rQsuFmxY85e6ma6lU4wisqCpcnrqyEPJ/view
+Goiris Luis|28466197|https://drive.google.com/file/d/1yD1HvFG6Dryaf0BsivfDuWjA92agnMPI/view
+Gonzàlez Sonia Emilse|3549586|https://drive.google.com/file/d/1J_L4Y0qaBxXMin2kVz_Ilx8PZMzRa_91/view
+Velàzquez Joaquìn|34450751|https://drive.google.com/file/d/1jL6Uza6QHT7PgMUi57hwtwBRvTfAKicF/view
+Schlemmer Lisandra|33805268|https://drive.google.com/file/d/1VHQOEpYy1eajGOnc3IWYvIEUDcvgpiQ2/view
+Fernandez Erica|28610924|https://drive.google.com/file/d/1CSIk58C7MYD7Qiy_19Q8roMu6fnXvZH_/view
+Arguello Matias|33947477|https://drive.google.com/file/d/1Weqigwy1bDvkk6yA8SxlhtJbNiTWk_7f/view
+Villalba Priscila|33440926|https://drive.google.com/file/d/10qJBkz3ydz6rQbIpDKYy1sRsGyCvUBAx/view
+Ramirez Marcelo|24742722|https://drive.google.com/file/d/1fivt2u81v0IAJILLGdg_YmYYk2ErDWE1/view
+Laura Leguizamon|34395301|https://drive.google.com/file/d/1D96K-i3ajS8eWmVeRjBV_29Bm-aOoylx/view
+Ferendiuk Diana|34413356|https://drive.google.com/file/d/1R6BBwudEcMuGlHxqYzxrbEarCQTRp7Z5/view
+Maciel yoana soledad|35116677|https://drive.google.com/file/d/1kZbbLEFmWLzSXE1TqoWGF6ZqG6WqyjoM/view
+Mirian Isabel Sánchez|31361212|https://drive.google.com/file/d/1z73hOIY-_agKV9sNOPhkhWf_k5iitvbg/view
+Cynthia Yanina Pretzel|38049603|https://drive.google.com/file/d/10jTiJgp3cNKMTeye_T_A_q2IAQ5Ghcxi/view
+Da Vega Luis Carlos|41832773|https://drive.google.com/file/d/1m0wlWzZbPPEisXqy4Wa673joNCbSMzzV/view
+Andrea Marisela|38040033|https://drive.google.com/file/d/1wpyK8BsRbVf8P1hwTP3hTCNgk5BV9ZEQ/view
+Yesica Mariel Biela|40952220|https://drive.google.com/file/d/19niFSBH86gvUk5bmQ6DK9s6IpnN5o4G5/view
+Koeyú Helena Kalitko Listán y Amor|46786820|https://drive.google.com/file/d/1M7B1U0arK3ZhN86icl9sfusvpyHIf5Js/view
+Javier Emmanuel Bustos|36814574|https://drive.google.com/file/d/1IkwXbIOYi7YbzLr6anLhxocoK4sG3LvJ/view
+Caballero Ayelen|43528207|https://drive.google.com/file/d/1ldUlBRrjvQzKf_Pt_cfZDm2ib7fneRU9/view
+Camila Caballero|40343095|https://drive.google.com/file/d/1BN10p93T_GENHfn_naZT7pQ0UsQJefTM/view
+Jesica Johana Sotelo|34081227|https://drive.google.com/file/d/15VJ2DYf9Mmr-K78zR3vkmcjei4E1xXrC/view
+María Noelia Buera|38565147|https://drive.google.com/file/d/1zv9dwP-KLrkFaxxvH-9M4mTOJ5ZVcNN2/view
+Aldana Karen Rodriguez|41631161|https://drive.google.com/file/d/1VNqUn1naafFXba7CBIB0koEq6FnNg86h/view
+Edgar Villalba|49871333|https://drive.google.com/file/d/1lZC6HkXK0gGKgwl9PvIRcRGiJoSn4Hdg/view
+Yamila Soledad Barbosa Da Silva|42965213|https://drive.google.com/file/d/1dKa-xrl4hUDjOJyk2fhBgsob0Zy_wXua/view
+Karen Mylena González|38774414|https://drive.google.com/file/d/12_9mslpc9kZi13zILqtvqjBLe0VRFidj/view
+Patricia Elizabet Rodríguez|30619021|https://drive.google.com/file/d/1pAW0QSTJMN7bg_QHEL_oEF8UNK-WmMQO/view
+Rosenbach Pedro Damián|43946248|https://drive.google.com/file/d/1c9PSFngLwnFSQe3RSUbZD3ZIG7Rqcsft/view
+Aniza del Rosario Osudar|44390663|https://drive.google.com/file/d/1vARXSZ6TANYYgSa26QcVOq8yoYIS4hYO/view
+Melina Daiana Nasadyk|44681129|https://drive.google.com/file/d/1aH_khVJTm3OuSISD1OTaSpBNPEW_3fXl/view
+Pamela Rodríguez de Almeida|48345608|https://drive.google.com/file/d/1NFtNmmkR67fg96DGRjr2nEUW9BRZc3M2/view
+Victoria Vera|35327147|https://drive.google.com/file/d/1ofRdRSeDlQhi0qawpP737UUqgoLfM4RK/view
+Silvia Verónica rojas|23401852|https://drive.google.com/file/d/124gaIuhNVWCOKKzOcXeRr84PZ1_vhkme/view
+Evelyn Novo|34826081|https://drive.google.com/file/d/1MoKHmLSwaOV2ya0jfApby_joemw4WCZL/view
+Daniela celeste veron|42086794|https://drive.google.com/file/d/1RCQC_uVVy2PhXx35lz_GlSo_V9HM3UZk/view
+Leguizamón Florencia Jaqueline|42198537|https://drive.google.com/file/d/1agKorzELY7mWC8EZUgoCZD9KiTqmq-wv/view
+Ricardo Techerira|37221946|https://drive.google.com/file/d/1Ra2Y--UQVTDaBz0vprq3W2u0bhYD4J-w/view
+Maria de los angeles|40412123|https://drive.google.com/file/d/1KWUG1wfZ32jbh6o_iaWgcz08SVqbZR3_/view
+Aguilar Miguel Alfredo|30255870|https://drive.google.com/file/d/1DUvWdykIvRP2oFLok3k_zeqQd2394Ew4/view
+Abril Dariana|47183207|https://drive.google.com/file/d/1A0C-FVDF3QtKQBYiugoz-6Fa3qNq0OoZ/view
+Ana Luján González|46478696|https://drive.google.com/file/d/1fCumw99UEhcfXdSspOYWw2CPgoMKs1UQ/view
+Mosqueda Griselda Beatriz|43120157|https://drive.google.com/file/d/1SFk25dM0n3BHCYdDoNBii-zi9fJDP2rH/view
+Santiago Maximiliano Olivera|38775792|https://drive.google.com/file/d/19ix7cmTLu1edZleeEhJSjQpmrThzJumv/view
+Davalos Talia de Jesús|40414564|https://drive.google.com/file/d/1cUkqoLpyA6J3pnwu2vjngDa8XqhAUOoT/view
+Rocio Ruth Ramirez|45603444|https://drive.google.com/file/d/110_EsWvZtLU4AknhKegSvJLgZ1rwbZr9/view
+Gabriel Antonio Zeiss|37590477|https://drive.google.com/file/d/1UWPY8AnkNHq773Zz6vVxgKGrw9tp970C/view
+Natalia Luana Vallejos|50208749|https://drive.google.com/file/d/1CB1Qs87pA-yZ9Z1WCJqKUcAsXkmeseB9/view
+Octavio Tomas Paulina|43945803|https://drive.google.com/file/d/10QPAD36TnuHGP6cKisnou5j58FvhanuD/view
+Gabriela Noemí Gasan|36063760|https://drive.google.com/file/d/1Fj668w-7x35ZRX8tL0L7BIJJ0m2o0lnY/view
+Mónica Barchuk|35838194|https://drive.google.com/file/d/1JHwNAcpCajhZZotH3XVBvDn0k3psisYd/view
+Siomara Silveira|35004600|https://drive.google.com/file/d/10jT0V7cpDAKRZHlCAs3WVy8tE96pV4fz/view
+Florencia Timoyko|43620411|https://drive.google.com/file/d/1RNOwj_J0oympk4NAuhDL_7bgKl0zFckk/view
+Irina Espinosa|43155267|https://drive.google.com/file/d/1drneo5Vbm0CANmoXDBoHG8F3CXzrmkoL/view
+Maria Irasema Acuña|36029259|https://drive.google.com/file/d/1Zn-AR4B1yhTm-OVklq2yaolv-EvVAVhc/view
+Daniela Marisol Montiel|40043816|https://drive.google.com/file/d/1LCT1h0x3JctOQnbBrXXpwXLsTLtm2b67/view
+Figueredo Norma|44680528|https://drive.google.com/file/d/1fo2omGBwA4LSSwRcZpngxpLj1jVMJL0F/view
+Karina Soledad Rotela|33456676|https://drive.google.com/file/d/1STdRIxC1CFJiLioceBP4g1TtHAnnxTL2/view
+Noemi Elena Wiesenhuther|41933686|https://drive.google.com/file/d/1vD9-CEY8J2N2ccVjc3K-uNNNe83Z-X6z/view
+Bogado Oxana Noemí|41305397|https://drive.google.com/file/d/1ZiCW2jc165u3cKmKXql3umipwxGoMhq4/view
+Inés Jaqueline Walkoski|36408416|https://drive.google.com/file/d/1xGZ08jTir9DIe-ktCs3YWCvf88TKTN4x/view
+González Maira Belén|43505285|https://drive.google.com/file/d/1GCVroBlyIH4oh1cZXiBWpJ9asWXLk8CA/view
+Yanina Maricel Rodríguez|45339698|https://drive.google.com/file/d/1Rai-ItLxv2MemUcYUNn0PolWNliSU6ou/view
+Almiron Maria Denise|27650126|https://drive.google.com/file/d/19LK4pFbsldrsbETzAxCOsORej_Pasu09/view
+Yenifer Evelin Sanchez|36454570|https://drive.google.com/file/d/1IwZFbI9Z2oAoGrBM8mXA4H5Xg970qaTJ/view
+Tamara Elizabeth Nuñez|41305574|https://drive.google.com/file/d/17mADYVCwuapxktJURVnLpqpyRZr0mHXY/view
+Fretes Carlos Gabriel|46553855|https://drive.google.com/file/d/1h-VMiC-LVP5ZlaMBr6NVbQbcKp5iH3F3/view
+Litwin Florencia Mariana|41832530|https://drive.google.com/file/d/1IMkzLmmzLVDFln23VGNwN8PIvjSwRHaB/view
+Caballero Maria Eugenia|42667219|https://drive.google.com/file/d/1gJahOzGwn6gknBkaab0RQtfKbTGhNhPQ/view
+Alejandra Mabel Ramos|36454981|https://drive.google.com/file/d/11AydbJFW0sMB20lKcWbUpcR9F-RGDdLI/view
+Facundo Rafael Somoza|41616827|https://drive.google.com/file/d/1_xKkwH2VBUogucgVFHXmW1XU-UeTXWnq/view
+De La Vega Agustina Magdalena|44744381|https://drive.google.com/file/d/12aa-KESZAW80LKz55b0Ab9Gamj_ntI1m/view
+Micaela Janet Acosta|38382018|https://drive.google.com/file/d/1i5-VpMa_Jgh-c40q11nlXWwHsaYYjbft/view
+Ana Paula Helman Valdez|44902862|https://drive.google.com/file/d/1P2sSa3KwRIx-SMYULrg1PoL1aK7k82HY/view
+Florentín Victoria Luján|43072140|https://drive.google.com/file/d/1UYZ3Gp7XxHFvVevyCtNERvzRutHTaR6f/view
+Zunilda Fraga|32596748|https://drive.google.com/file/d/1gUkU2J5nJg6V5a9W4z3JJtcKVHAWCQz3/view
+Mac leod Seron Antonella|39391684|https://drive.google.com/file/d/11KGfuFkHInzurPBW7eiZb-z8QutyStU2/view
+Cuevas Ibarra María Eugenia|26266748|https://drive.google.com/file/d/1c8k_-E2yT4u7NRT31H6jz4Li8uB9KYUi/view
+Pricila Estefani|43419832|https://drive.google.com/file/d/1uAgH3ji0eVSqhSji05RURuKjMQaWP24L/view
+Katherine Rocio Nuñez Ozuna|94889387|https://drive.google.com/file/d/14XlfAuyEk8pzQEKa9yfDdxY4PL3D8poH/view
+Agustina Abigaíl Amaral|43357229|https://drive.google.com/file/d/1H0xwfZoCATgGtpVJ9O3MxYuVO9XcV6s8/view
+María Ángela Mora|33864946|https://drive.google.com/file/d/16OUXrdoL2PcV_JbBQGfm_nQWZFo7Xkub/view
+Aldana Martina Ostapiuck|46166136|https://drive.google.com/file/d/1LJrhBuA2jsINSvpCmkIorIiBmD-0vDZY/view
+Viviana Lucia Rintfeich|39528014|https://drive.google.com/file/d/1MNgbWY0-dw4MZb3N3uRvJnAc2mAMPwpS/view
+Gamez Melisa|43024605|https://drive.google.com/file/d/1UDd1jzOE05bvt4CIET4Ti0iRmRrFHocl/view
+Laura Camila Grahl|39722975|https://drive.google.com/file/d/1lGOIUqIc6WGT3gWTGgFu0c8wZi9GWATY/view
+Claudia Marcela Warchol|22582733|https://drive.google.com/file/d/1baDFA4lJASJrMJ6HBymP29br-2GyfyHp/view
+Rivero Sandra Dimaela|41832920|https://drive.google.com/file/d/1cBmEOb-A-EgrSSYiSG_d6aUq8tz-PlQq/view
+Luana Sofia Exequiel|46979105|https://drive.google.com/file/d/1LuHSiXaQgyakQDdm-1IZkfHPufUp0j7T/view
+Araujo Micaela Agostina|42667986|https://drive.google.com/file/d/1ve9VrSfJgGcg1JNKNOUHe75UrNFZU3Wl/view
+Leonardo Agustín Bareiro|46390406|https://drive.google.com/file/d/1qNoxXJlfMVo2D6_pNHQjSJ0hEOJFRVgr/view
+Maidana Florencia Belén|45777235|https://drive.google.com/file/d/1Mrgqe3ZQdgdCCjX0CmwD8XC153IH6Vnc/view
+Carolina Micaela Rodriguez|39227057|https://drive.google.com/file/d/1HR9dMgeM_5rBkVlEHLG9vIHRwoWzhxI-/view
+Lorena Paola Jara|29557449|https://drive.google.com/file/d/158mPpMRE3nxha15eWyapOqSdPgWB__Al/view
+Nowasadzki Carla Solange|27498814|https://drive.google.com/file/d/1QzH6JODF6TOPWiBaKfS6WijYl71vvgWZ/view
+Esteche Ivana Belén|43759017|https://drive.google.com/file/d/1R2c46tWBezEYKzmZgjtAGaIO_ghNkFFf/view
+Tamara Elizabet Rios|33954991|https://drive.google.com/file/d/1Lz4LZ5NinLR-mo0uqxZCir2cora6576S/view
+Chiodin Gladis Estela|28957202|https://drive.google.com/file/d/1gy0Ii08gvqWspoAh9VVQYSmYUoUJW48C/view
+Constantino valeria|31350315|https://drive.google.com/file/d/1ZOL9ZikHKuZrCoxy2jPmJ9_CONVrbrvN/view
+Da rosa luisa|27454693|https://drive.google.com/file/d/1JNBgY04Zi_U7pBq6KR_v2OGTorjAD13u/view
+Eliana Leonela Muzzolon|44666447|https://drive.google.com/file/d/1jbKLPFdXcmY_NrdQtPvWgZtK9vpsWoJv/view
+Engers Gabriela Janet|44737819|https://drive.google.com/file/d/1pG11smx3dxj818jM6IOH6buKLndL_djw/view
+Rodríguez Lorena Soledad|28969539|https://drive.google.com/file/d/1ozj0vm782-nn6LLVb2rZ2eGkavkbjF9o/view
+Espíndola Brahyan Antonio|42086072|https://drive.google.com/file/d/1-6KOvZ690C78zemqrNeQLjYbq2v7EU6s/view
+Florencia Magali Araujo|34112450|https://drive.google.com/file/d/1__NUnDgVf4L4_4M7D4A_lB_bG6bpK5t7/view
+Susana Alicia Oviedo|31871602|https://drive.google.com/file/d/1UVjIM5ncalbFUlEnB_bu_tNiGJI85M47/view
+Roxana Macarena Baez|30850394|https://drive.google.com/file/d/1G1h5jlOMBeh7BK4WlWczd2cruHFmzPXi/view
+Fernández Pedro ariel|25078910|https://drive.google.com/file/d/1a_QDu5xP52lwBXJnr47hXJcFBf91FH6f/view
+Noemí Rebeca Mendoza|37887787|https://drive.google.com/file/d/1hJX7qm-p76iTl3SNxucvyJfC3mhVwvHI/view
+Villalba Nancy Mariana|43547517|https://drive.google.com/file/d/1o-vNAseR7EyTNuajoSSMEMxZFFjeZnRn/view
+Fernández Santiago Miguel|43357188|https://drive.google.com/file/d/1kUGhIKJfzDhWI_8Q3EPwDjqye4BWnKZz/view
+Juliana Magali Meza|35327093|https://drive.google.com/file/d/1mV_rE4Ct20oVnOjhgZ0HAjUoD7IgvkAp/view
+Evelin Yamila Baez|39723168|https://drive.google.com/file/d/13CG54zcXoADgIF-IKpRKdAIeAuPfPU8c/view
+Irma micaela quintana|37158306|https://drive.google.com/file/d/1F4Yvsc-eICb_ZBfkaBjzqvj25wYzk08S/view
+Adriana dos santos|40334947|https://drive.google.com/file/d/1qII3_JrqpfUKeAL0FGC-S01fRpF8RztG/view
+Leiria Micaela Alejandra|44073794|https://drive.google.com/file/d/1mqx6E0RFGZKMQHTPqj9wthV39fXl9EA8/view
+Adriana Yanina Almeida|29368321|https://drive.google.com/file/d/1S-IsiXFOLxFAC8FB4dBynmkHazWhgwHp/view
+Silva macarena|42288032|https://drive.google.com/file/d/1v7MszW0vJMV8o6ZRCzdj6pUsXwsVsjPq/view
+Brian Emanuel Martinez|39638187|https://drive.google.com/file/d/1lSF0dwj_ddkgvQEsdNLQFx7SD76u7NU4/view
+Villalba ezequiel oscar|37082124|https://drive.google.com/file/d/1WXUIaTSmSrCYYOEZ5e3Kl1dgiRt_RmSQ/view
+Amaro Camila Belén|42764642|https://drive.google.com/file/d/1kmvafACHpW1eOKJIq3ZsMFsVRk2AM80U/view
+Sanabria Yesica Mariel|43546850|https://drive.google.com/file/d/1We2JjC60yOiLMoFqDt4Ob3JHgtNDATkz/view
+Nataly Itatí Halberstadt|46852717|https://drive.google.com/file/d/1rDxahC-pUO_PQZqKNHbYlHXZjjhFRyvs/view
+Florencia Itati Rivas|43070343|https://drive.google.com/file/d/1yiBKR0YnYMtPsU3wrLVV8EkQaOanrdOd/view
+Milagros Annabel Rolandi Stoessel|40656892|https://drive.google.com/file/d/1tfgdRWQtZO2OXQoD6_JRCksYbT5vQiwM/view
+Espindola Carolina Eugenia|40509781|https://drive.google.com/file/d/10RiN8Fw8UFS01aiyJMkVYrzknkup-54B/view
+Agustina Haidee Fernández Encina|39633012|https://drive.google.com/file/d/1qzUh9jtjruvyimxU6jH4qCfE4tSRND7g/view
+Florencia Ximena Itati Guimaraez|4331364|https://drive.google.com/file/d/1lqpA2On9mnr-VvoJ7B1nxagyaNPXki8G/view
+Ana Maria Diaz|21394334|https://drive.google.com/file/d/1kuaG8jODrWvG4Eu_k0ZShAmlutTOfXO-/view
+Elias Gabriel Retamar Acosta|46479265|https://drive.google.com/file/d/1bOr7Zag7129qPpgq2OQmiL4TB2KHUlcG/view
+Isaac Juan Emanuel Figueroa|40515408|https://drive.google.com/file/d/1WORE50eHWoctg8xLpAAnU2kb90lIW0bt/view
+Rosa Isabel Pavón|33076046|https://drive.google.com/file/d/1_Rb9kl05kJTFVCYOmbjRjurczj12ra7d/view
+Claudia vanesa viera|30638814|https://drive.google.com/file/d/1sp5-lG9lCa3iQY9ArzpQWOjMHxNnMxCS/view
+Yamila Belen Godoy|37589901|https://drive.google.com/file/d/1aOR2QXhc03PyjH-bwgyEFUiU_1bOiUUa/view
+Vieira Mauricio Thomas|46729914|https://drive.google.com/file/d/1HQX6Mn-v7Dj8_5tSdQMDgZNJ5KZIt4o0/view
+Zunilda dikoski|34161779|https://drive.google.com/file/d/1EGbNvlBK-ONr4JtQK1fBN2Qa0fQklyFM/view
+Sandra Soledad Nascimento|31950765|https://drive.google.com/file/d/1TkaUblX2BsMVzIBrwz_-sQdXVc7jX62U/view
+Cecilia Lorena Baez|31361843|https://drive.google.com/file/d/1QIPUzvGb0H3yrmmn7b0MyB4xctGRo-47/view
+Irene Jazmin Kuliba|43071069|https://drive.google.com/file/d/1fvttup3LfRa6minvjRazzFv_YfONhx0U/view
+Ana Paula Maidana|44226702|https://drive.google.com/file/d/1T1-P5jdie1GIfVVZjlVXQnLqVcIs16k7/view
+Maria Magdalena Ojeda Romero|18778813|https://drive.google.com/file/d/126gEY1R44UgglZViQF1SAyhSSLBh0LJh/view
+Iglesias Ainara Macarena|39225582|https://drive.google.com/file/d/1k-9ABDQbO_10VJJp8jef9ZwNHcM6wZde/view
+Angeles Chamorro|36061947|https://drive.google.com/file/d/1Vvz-3zO9a9hcMruY5gHcNPKpF4T2eI7q/view
+Carolina Perez|32303978|https://drive.google.com/file/d/1W2BWYMlXtMyCz9YUPGIL8H8MGcVURwIB/view
+Sotelo Nadia Luna Catalina|45452432|https://drive.google.com/file/d/1WpUEJvGcCKdaM_XNTxZ9AFClR5EN6D_n/view
+Rivas Luciano Gastón|44011769|https://drive.google.com/file/d/1nxuHCQkffv0Doyec6xrl2wpWFGZ9Hxs_/view
+Baez Brian Nicolás|46552597|https://drive.google.com/file/d/1UaGBro8MX3wz-K4Cjou2kePx22Jjw6CL/view
+Nancy Aspeleiter|42240657|https://drive.google.com/file/d/18E84mHdlkAQNqTpE-spo4XTIc0umgIao/view
+Yanina Elizabeth Centurión|39530262|https://drive.google.com/file/d/19MFBoaA99FdEjVEr7BQiJhik_LHyvQqu/view
+Jonatan Ariel Del Valle|37394965|https://drive.google.com/file/d/15jNpNoAXEG4lz-Cli7Q0S-zriBXCi5X6/view
+Analia Ines Mendoza|36195599|https://drive.google.com/file/d/1CSlzu-7BbmLF7O2TOu-20x0COf9o2ElG/view
+María Gabriela Servin|94731582|https://drive.google.com/file/d/1LmugPN7-Q4jY1pYoGiVAbfgRKEyDrGnX/view
+Guadalupe Zavala|42762382|https://drive.google.com/file/d/1joFTK_vo4M9UjRALCqjMLHvOzrli2d-r/view
+Nuñez Tatiana Marisel|34971638|https://drive.google.com/file/d/1QH5Yxw5vmAZz1mU63xBEyg9WBlokLmRa/view
+Yanina Flores|31874437|https://drive.google.com/file/d/1uRApmEF46hKyUHouS-4-QPEyaRgZgwmQ/view
+Centurion Noelia Belen|34449942|https://drive.google.com/file/d/1EX4bBia94QNkQGN6jGZ6oG0lQBacXYnm/view
+Giuliana Sofía Allica|42273024|https://drive.google.com/file/d/1frruOQ2xUr7-LwrfwsGeQxbwz0tbzsVn/view
+Natalia Margarita Medina|41615518|https://drive.google.com/file/d/1IUC-ikAa9tDv2vkRty7V6ZEnMNvDccng/view
+Gloria Liliana Quintana|27429395|https://drive.google.com/file/d/1B5jqyNhGAPwGzUSsM7VeS2lR-jX8Bhfv/view
+Yakoski Ximena Ivana|43757252|https://drive.google.com/file/d/1LHgLIZQqEBMNX3Nds_6A5_pXIMAt85VA/view
+Nimia Ester Benitez|38198759|https://drive.google.com/file/d/1fDBfcYuaniGwGH3kQ1ETp2P5Ehdni2bM/view
+Nagaoka Aimi|51700235|https://drive.google.com/file/d/1lBLlWB8DHxLPuPLLAnuSRMk_b_te2ya1/view
+Sofía Belén Padilla Cassoni|44013906|https://drive.google.com/file/d/1nW57Je5NHyCmI4jEWyd5WMEyDqTYaNTl/view
+Alejandra Gisel Fariña|35487943|https://drive.google.com/file/d/1-LwenfgZjPgFQkuVX-2o4ADd-T1cSCnX/view
+Gabriela Paredes|43356949|https://drive.google.com/file/d/1E8BkEfYJLL_35V5pHNeEa_0ehkx46T_A/view
+Loman Daniela Tamara|39944449|https://drive.google.com/file/d/1Fzo53asYNV89h0s7ovby7pl24gJMFftu/view
+Daiana Mercedes Montiel|37915814|https://drive.google.com/file/d/16ZHpoUpADAColqrg5q5OLMbnHN0fg8fH/view
+Norberto Eliseo López|37221695|https://drive.google.com/file/d/1opms52c2U3dVCwxRJ3HQg_54E_KMcCR4/view
+Victorindo Hedgar Denis|18462387|https://drive.google.com/file/d/1Y81-6n4r2jtxDxywd6qqCV0Nn7v3dihx/view
+Sosa Wasinger Juliana Analia|35712102|https://drive.google.com/file/d/1QUBg9qZ4I2o9MNJ-CFn5W1qPB1zeOQIq/view
+Rivas Cintia Vanesa|31784371|https://drive.google.com/file/d/1ircGVRyqhleQjSFXbeQYR740RUG0Jw3N/view
+Arroyo Juan Carlos|29071748|https://drive.google.com/file/d/13aY8AwP_Am15RAlivqZbuzBOHi2xpxB6/view
+Sosa Valeria|31352594|https://drive.google.com/file/d/1mIP150a2JnMWTCulj9EXZIQ667coD3tt/view
+Esteche Silvana|34262651|https://drive.google.com/file/d/1KhO_dODRzCX03CjPayYh0Ls8UXzCoRHZ/view
+Taraglio Estefanía Tania|33856143|https://drive.google.com/file/d/1FmvtxNovhFTlH3My_em9Ipd9U-YnHThK/view
+Mouesca Gisela|34395487|https://drive.google.com/file/d/1pC0maVseDODuhvIklT4WHJQNUmQvM_yF/view
+`;
+
+const registros = participantes.trim().split("\n").map(linea => {
+  const [nombre, dni, enlace] = linea.split("|");
+  return { nombre, dni, enlace };
+});
+
+function normalizar(texto) {
+  return texto.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+let seleccionado = null;
+
+function buscar() {
+  const consulta = normalizar(document.getElementById("busqueda").value);
+  const resultados = document.getElementById("resultados");
+  const verificacion = document.getElementById("verificacion");
+  const mensaje = document.getElementById("mensaje");
+  document.getElementById("descarga").innerHTML = "";
+  verificacion.style.display = "none";
+  mensaje.textContent = "";
+  resultados.innerHTML = "";
+  seleccionado = null;
+
+  if (consulta.length < 3) {
+    mensaje.textContent = "Escribí al menos 3 letras para buscar.";
+    return;
+  }
+
+  const encontrados = registros.filter(p =>
+    normalizar(p.nombre).includes(consulta)
+  );
+
+  if (encontrados.length === 0) {
+    mensaje.textContent = "No encontramos ese nombre. Revisá cómo lo escribiste.";
+    return;
+  }
+
+  encontrados.forEach(persona => {
+    const bloque = document.createElement("div");
+    bloque.className = "resultado";
+
+    const nombre = document.createElement("strong");
+    nombre.textContent = persona.nombre;
+
+    const boton = document.createElement("button");
+    boton.textContent = "Este es mi nombre";
+    boton.onclick = () => seleccionar(persona);
+
+    bloque.appendChild(nombre);
+    bloque.appendChild(boton);
+    resultados.appendChild(bloque);
+  });
+}
+
+function seleccionar(persona) {
+  seleccionado = persona;
+  document.getElementById("nombreElegido").textContent = persona.nombre;
+  document.getElementById("verificacion").style.display = "block";
+  document.getElementById("dni").value = "";
+  document.getElementById("mensaje").textContent = "";
+  document.getElementById("descarga").innerHTML = "";
+}
+
+function verificar() {
+  const dniIngresado = document.getElementById("dni").value.replace(/\D/g, "");
+  const mensaje = document.getElementById("mensaje");
+  const descarga = document.getElementById("descarga");
+
+  descarga.innerHTML = "";
+
+  if (!seleccionado) return;
+
+  if (dniIngresado === seleccionado.dni) {
+    mensaje.textContent = "¡Datos verificados correctamente!";
+    mensaje.style.color = "green";
+
+    const enlace = document.createElement("a");
+    enlace.className = "descargar";
+    enlace.href = seleccionado.enlace;
+    enlace.target = "_blank";
+    enlace.rel = "noopener";
+    enlace.textContent = "ABRIR MI CERTIFICADO";
+
+    descarga.appendChild(enlace);
+  } else {
+    mensaje.textContent = "El DNI ingresado no coincide. Revisá los datos.";
+    mensaje.style.color = "red";
+  }
+}
+</script>
+</body>
+</html>
